@@ -2,7 +2,7 @@
 
 TT-Open-WBO-Inc is an anytime MaxSAT solver. It's a spin-off of Open-WBO-Inc. 
 
-Author: Alexander Nadel, alexander.nadel@cs.tau.ac.il
+Author: Alexander Nadel, alexandernad@technion.ac.il
 Authors and contributors of the baseline solver Open-WBO-Inc: Ruben Martins, Vasco Manquinho, Ines Lynce, Miguel Neves, Saurabh Joshi, Mikolas Janota
 Authors of the local search solver NuWLS-c: Yi Chu, Shaowei Cai, Zhendong Lei, Xiang He
 
