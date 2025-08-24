@@ -106,7 +106,7 @@ int main(int argc, char **argv) {
   printf("c Author:\t Alexander Nadel\n");
   printf("c Authors of the baseline SAT-based solver Open-WBO-Inc:\t Saurabh Joshi, Prateek Kumar, Ruben Martins, Sukrut Rao\n");
   printf("c Authors of the local search solver NuWLS-c-2023:\t Yi Chu, Shaowei Cai, Chuan Luo\n");
-  printf("c Contact:\t alexander.nadel@cs.tau.ac.il -- "
+  printf("c Contact:\t alexandernad@technion.ac.il -- "
          "http://www.cs.tau.ac.il/research/alexander.nadel/\nc\n");
   try {
     NSPACE::setUsageHelp("c USAGE: %s [options] <input-file>\n\n");
