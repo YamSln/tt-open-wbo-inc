@@ -1,0 +1,13 @@
+{
+  "files.associations": {
+    "iostream": "cpp",
+    "ostream": "cpp",
+    "chrono": "cpp"
+  },
+  "[cpp]": {
+    "editor.formatOnSave": false
+  },
+  "[c]": {
+    "editor.formatOnSave": false
+  }
+}
