@@ -78,7 +78,7 @@ public:
 
     // steps and time
     int tries;
-    int max_flips;
+    long long max_flips;
     int max_non_improve_flip;
     int step;
 

@@ -896,7 +896,8 @@ void LinearSUClustering::bmoSearch(){
         
         int time_limit_for_ls = nuwlsTimeLimit;
         
-        int step = 0;
+        long long step = 0;
+        vec<Lit> assumps = {};
         // if (nuwls_solver.if_using_neighbor)
         {
           for (step = 1; step < nuwls_solver.max_flips; ++step)
@@ -942,11 +943,32 @@ void LinearSUClustering::bmoSearch(){
                 break;
               }
             }
+            if (step == nuwls_solver.max_flips - 1)
+            {
+              // TODO: Check if this implementation is what we need
+              res = polosat(solver, assumps, objFunction);
+              if (res == l_True)
+              {
+                cout << "c checking if polosat improved the model" << endl;
+                uint64_t currCost = computeOriginalCost(solver->model);
+                if (currCost < nuwls_solver.opt_unsat_weight)
+                {
+                  saveModel(solver->model, currCost);
+                  solver->model.copyTo(best_model);
+                  nuwls_solver.opt_unsat_weight = currCost;
+                  nuwls_solver.max_flips = step + nuwls_solver.max_non_improve_flip;
+                  cout << "c polosat improved the model to " << currCost << endl;
+                  cout << "o " << currCost << endl;
+                  printf("c timeo %u %" PRId64 " \n", (unsigned)ceil(Torc::Instance()->WallTimePassed()), currCost);	
+                }
+                else
+                {
+                  cout << "c polosat did not improve the model" << endl;
+                }
+              } 
+            }
           }
         }
-        nuwls_solver.free_memory();
-        cout << "c nuwls search done!" << endl;
-        cout << "c step " << step << " get_runtime " << get_runtime() << " time_limit_for_ls" << time_limit_for_ls << endl;
       }
     }
     
