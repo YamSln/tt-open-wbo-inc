@@ -863,7 +863,7 @@ void LinearSUClustering::bmoSearch(){
       saveModel(solver->model, currCost);
       
       cout << "o " << currCost << endl;
-      if (verbosity > 0) printf("c timeo %u %" PRId64 " \n", (unsigned)ceil(Torc::Instance()->WallTimePassed()), currCost);	
+      printf("c timeo %u %" PRId64 " \n", (unsigned)ceil(Torc::Instance()->WallTimePassed()), currCost);	
       //if (maxsat_formula->using_nuwls == false && maxsat_formula->nTotalLitCount() < 350000000)
       {
         maxsat_formula->using_nuwls = true;
@@ -912,7 +912,7 @@ void LinearSUClustering::bmoSearch(){
 
                 nuwls_solver.opt_unsat_weight = nuwls_solver.soft_unsat_weight;
                 cout << "o " << nuwls_solver.opt_unsat_weight << endl;
-                if (verbosity > 0) printf("c timeo %u %" PRId64 " \n", (unsigned)ceil(Torc::Instance()->WallTimePassed()), nuwls_solver.opt_unsat_weight);	
+                printf("c timeo %u %" PRId64 " \n", (unsigned)ceil(Torc::Instance()->WallTimePassed()), nuwls_solver.opt_unsat_weight);	
                 for (int v = 1; v <= nuwls_solver.num_vars; ++v)
                 {
                   if (nuwls_solver.cur_soln[v] == 0)
@@ -926,6 +926,7 @@ void LinearSUClustering::bmoSearch(){
                 saveModel(solver->model, oriCost);
                 // solver->model.copyTo(best_model);
 				cout << "o " << nuwls_solver.opt_unsat_weight << endl;
+        printf("c timeo %u %" PRId64 " \n", (unsigned)ceil(Torc::Instance()->WallTimePassed()), nuwls_solver.opt_unsat_weight);
                 if (nuwls_solver.opt_unsat_weight == 0)
                   break;
               }

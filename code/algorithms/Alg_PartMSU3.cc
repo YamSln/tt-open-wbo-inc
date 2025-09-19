@@ -510,6 +510,7 @@ void PartMSU3::PartMSU3_sequential() {
       if (nbSatisfiable == 1 || newCost < ubCost) {
         saveModel(solver->model);
         printf("o %" PRIu64 "\n", newCost);
+        printf("c timeo %u %" PRId64 " \n", (unsigned)ceil(Torc::Instance()->WallTimePassed()), newCost);
         ubCost = newCost;
       }
 
@@ -708,6 +709,7 @@ void PartMSU3::PartMSU3_binary() {
       if (nbSatisfiable == 1 || newCost < ubCost) {
         saveModel(solver->model);
         printf("o %" PRIu64 "\n", newCost);
+        printf("c timeo %u %" PRId64 " \n", (unsigned)ceil(Torc::Instance()->WallTimePassed()), newCost);
         ubCost = newCost;
       }
 

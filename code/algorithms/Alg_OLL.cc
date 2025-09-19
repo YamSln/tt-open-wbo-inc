@@ -129,9 +129,11 @@ void OLL::unweighted() {
         // optimization problem
         if (maxsat_formula->getObjFunction() != NULL) {
           printf("o %" PRId64 "\n", newCost + off_set);
+          printf("c timeo %u %" PRId64 " \n", (unsigned)ceil(Torc::Instance()->WallTimePassed()), newCost + off_set);
         }
       } else
         printf("o %" PRId64 "\n", newCost + off_set);
+        printf("c timeo %u %" PRId64 " \n", (unsigned)ceil(Torc::Instance()->WallTimePassed()), newCost + off_set);
 
       ubCost = newCost;
 
@@ -328,9 +330,11 @@ void OLL::weighted() {
           // optimization problem
           if (maxsat_formula->getObjFunction() != NULL) {
             printf("o %" PRId64 "\n", newCost + off_set);
+            printf("c timeo %u %" PRId64 " \n", (unsigned)ceil(Torc::Instance()->WallTimePassed()), newCost + off_set);
           }
         } else
           printf("o %" PRId64 "\n", newCost + off_set);
+          printf("c timeo %u %" PRId64 " \n", (unsigned)ceil(Torc::Instance()->WallTimePassed()), newCost + off_set);
         ubCost = newCost;
       }
 

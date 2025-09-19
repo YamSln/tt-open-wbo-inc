@@ -153,7 +153,8 @@ void BLS::LSU() {
       nbSatisfiable++;
       newCost = computeCostModel(solver->model);
       saveModel(solver->model);
-      printf("o %" PRId64 "\n", newCost + off_set); 
+      printf("o %" PRId64 "\n", newCost + off_set);
+      printf("c timeo %u %" PRId64 " \n", (unsigned)ceil(Torc::Instance()->WallTimePassed()), newCost + off_set); 
 
       if (newCost == 0) {
         // If there is a model with value 0 then it is an optimal model
@@ -242,6 +243,7 @@ bool BLS::findNextMCS() {
   	if (newCost < _smallestMCS){
   		saveModel(solver->model);	
   		printf("o %" PRId64 "\n", newCost);
+      printf("c timeo %u %" PRId64 " \n", (unsigned)ceil(Torc::Instance()->WallTimePassed()), newCost);
   		_smallestMCS = newCost;
   	}
   }
@@ -276,6 +278,7 @@ bool BLS::findNextMCS() {
 	       //saveSmallestModel(solver->model);
       	   saveModel(solver->model);
 	       printf("o %" PRId64 "\n", costModel);
+         printf("c timeo %u %" PRId64 " \n", (unsigned)ceil(Torc::Instance()->WallTimePassed()), costModel);
 	       _smallestMCS = costModel;
       }
     }
@@ -300,6 +303,7 @@ bool BLS::findNextMCS() {
       costModel -= maxsat_formula->getSoftClause(satClauses.last()).weight;
       if (undefClauses.size() == 0 && costModel < _smallestMCS){
         printf("o %" PRId64 "\n", costModel);
+        printf("c timeo %u %" PRId64 " \n", (unsigned)ceil(Torc::Instance()->WallTimePassed()), costModel);
         saveModel(solver->model);
         _smallestMCS = costModel;
       }

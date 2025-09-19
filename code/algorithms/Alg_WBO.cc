@@ -812,6 +812,7 @@ void WBO::unsatSearch() {
     ubCost = cost;
     saveModel(solver->model);
     printf("o %" PRIu64 "\n", ubCost);
+    printf("c timeo %u %" PRId64 " \n", (unsigned)ceil(Torc::Instance()->WallTimePassed()), ubCost);
   }
 
   delete solver;
@@ -881,6 +882,7 @@ void WBO::weightSearch() {
           ubCost = lbCost;
           saveModel(solver->model);
           printf("o %" PRIu64 "\n", lbCost);
+          printf("c timeo %u %" PRId64 " \n", (unsigned)ceil(Torc::Instance()->WallTimePassed()), lbCost);
         }
         printAnswer(_OPTIMUM_);
         exit(_OPTIMUM_);
@@ -891,6 +893,7 @@ void WBO::weightSearch() {
           ubCost = cost;
           saveModel(solver->model);
           printf("o %" PRIu64 "\n", ubCost);
+          printf("c timeo %u %" PRId64 " \n", (unsigned)ceil(Torc::Instance()->WallTimePassed()), ubCost);
         }
 
         if (lbCost == ubCost) {
@@ -963,6 +966,7 @@ void WBO::normalSearch() {
       ubCost = computeCostModel(solver->model);
       assert(lbCost == ubCost);
       printf("o %" PRIu64 "\n", lbCost);
+      printf("c timeo %u %" PRId64 " \n", (unsigned)ceil(Torc::Instance()->WallTimePassed()), lbCost);
       saveModel(solver->model);
       printAnswer(_OPTIMUM_);
       exit(_OPTIMUM_);

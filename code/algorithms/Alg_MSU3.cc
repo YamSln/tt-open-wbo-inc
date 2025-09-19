@@ -86,6 +86,7 @@ void MSU3::MSU3_iterative() {
       uint64_t newCost = computeCostModel(solver->model);
       saveModel(solver->model);
       printf("o %" PRIu64 "\n", newCost);
+      printf("c timeo %u %" PRId64 " \n", (unsigned)ceil(Torc::Instance()->WallTimePassed()), newCost);
 
       ubCost = newCost;
 

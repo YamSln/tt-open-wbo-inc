@@ -285,7 +285,7 @@ lbool MaxSAT::polosat(Solver *solver, vec<Lit> &assumptions, vec<Lit> &obsVecLit
     auto currCost = computeCostModel(solver->model);
     saveModel(solver->model, currCost);
     cout << "o " << currCost << endl;
-    if (verbosity > 0) printf("c timeo %u %" PRId64 " \n", (unsigned)ceil(Torc::Instance()->WallTimePassed()), currCost);	
+    printf("c timeo %u %" PRId64 " \n", (unsigned)ceil(Torc::Instance()->WallTimePassed()), currCost);	
     maxsat_formula->using_nuwls = true;
     NUWLS nuwls_solver;
     nuwls_solver.problem_weighted = 0;
@@ -343,6 +343,7 @@ lbool MaxSAT::polosat(Solver *solver, vec<Lit> &assumptions, vec<Lit> &obsVecLit
             auto oriCost = nuwls_solver.opt_unsat_weight;
             saveModel(solver->model, oriCost);
             cout << "o " << nuwls_solver.opt_unsat_weight << endl;
+            printf("c timeo %u %" PRId64 " \n", (unsigned)ceil(Torc::Instance()->WallTimePassed()), nuwls_solver.opt_unsat_weight);
             // solver->model.copyTo(best_model);
 
             if (nuwls_solver.opt_unsat_weight == 0)
@@ -388,6 +389,7 @@ lbool MaxSAT::polosat(Solver *solver, vec<Lit> &assumptions, vec<Lit> &obsVecLit
             auto oriCost = nuwls_solver.opt_unsat_weight;
             saveModel(solver->model, oriCost);
             cout << "o " << nuwls_solver.opt_unsat_weight << endl;
+            printf("c timeo %u %" PRId64 " \n", (unsigned)ceil(Torc::Instance()->WallTimePassed()), nuwls_solver.opt_unsat_weight);
             // solver->model.copyTo(best_model);
 
             if (nuwls_solver.opt_unsat_weight == 0)
@@ -1210,7 +1212,8 @@ void MaxSAT::printModel() {
   
   if (oInLatestModel != (uint64_t)-1)
   {
-	  printf("o %" PRId64 " \n", oInLatestModel);        	
+	  printf("o %" PRId64 " \n", oInLatestModel); 
+    printf("c timeo %u %" PRId64 " \n", (unsigned)ceil(Torc::Instance()->WallTimePassed()), oInLatestModel);       	
   }
   
   assert(model.size() != 0);
