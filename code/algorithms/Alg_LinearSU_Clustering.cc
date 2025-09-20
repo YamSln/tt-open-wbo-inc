@@ -35,6 +35,7 @@
 #include <algorithm>
 #include <fstream>
 #include <iostream>
+#include <unordered_set>
 
 #define MAX_CLAUSES 3000000
 
@@ -897,7 +898,73 @@ void LinearSUClustering::bmoSearch(){
         int time_limit_for_ls = nuwlsTimeLimit;
         
         long long step = 0;
-        vec<Lit> assumps = {};
+        auto Polosat = [&]()
+        {
+          if (model.size() == 0)
+            return l_Undef;
+          
+          solver->_user_phase_saving.clear();
+          solver->_user_phase_saving.growTo(solver->nVars(), l_Undef);
+          for (int i = 0; i < objFunction.size(); i++)
+              solver->_user_phase_saving[var(objFunction[i])] = l_False;
+          
+          bool goodEpoch = true;
+          auto bestCost = nuwls_solver.opt_unsat_weight;
+          vec<Lit> assumps;
+          vec<Lit> badLits;
+          unordered_set<int> objVars;
+          objVars.reserve(objFunction.size());
+          for (int i = 0; i < objFunction.size(); i++)
+            objVars.insert(var(objFunction[i]));
+          
+          while (goodEpoch && bestCost > 0)
+          {
+            goodEpoch = false;
+            badLits.clear();
+            for (int i = 0; i < objFunction.size(); i++)
+            {
+              if (model[var(objFunction[i])] == l_True)
+                badLits.push(objFunction[i]);
+            }
+            while (badLits.size() > 0)
+            {
+              Lit p = badLits.last();
+              badLits.pop();
+              for (int i = 0; i < solver->nVars(); i++)
+                solver->_user_phase_saving[i] = objVars.contains(i) ? l_False : model[i];
+              
+              assumps.push(~p);
+              solver->setConfBudget(Torc::Instance()->GetMsConflictsPerSatCall());
+              auto res = searchSATSolver(solver, assumps);
+              solver->budgetOffConflict();
+              assumps.pop();
+
+              if (res == l_True)
+              {
+                auto currCost = computeOriginalCost(solver->model);
+                if (currCost < bestCost)
+                {
+                  bestCost = currCost;
+                  saveModel(solver->model, bestCost);
+                  goodEpoch = true;
+
+                  cout << "c POLO_IMPROVED" << endl;
+                  printf("c timeo %u %" PRId64 " \n", (unsigned)ceil(Torc::Instance()->WallTimePassed()), bestCost);
+                  if (bestCost == 0)
+                    break;
+                }
+                int writePos = 0;
+                for (int i = 0; i < badLits.size(); i++) 
+                  if (solver->model[var(badLits[i])] == l_False)
+                    badLits[writePos++] = badLits[i];
+                badLits.shrink(badLits.size() - writePos);
+              }
+            }
+          }
+          model.copyTo(solver->model);
+          solver->_user_phase_saving.clear();
+          return res;
+        };
         // if (nuwls_solver.if_using_neighbor)
         {
           for (step = 1; step < nuwls_solver.max_flips; ++step)
@@ -945,27 +1012,24 @@ void LinearSUClustering::bmoSearch(){
             }
             if (step == nuwls_solver.max_flips - 1)
             {
-              // TODO: Check if this implementation is what we need
-              res = polosat(solver, assumps, objFunction);
-              if (res == l_True)
+              auto res = Polosat();
+              if (res == l_True) 
               {
-                cout << "c checking if polosat improved the model" << endl;
-                uint64_t currCost = computeOriginalCost(solver->model);
-                if (currCost < nuwls_solver.opt_unsat_weight)
+                auto polosatCost = computeOriginalCost(solver->model);
+                if (polosatCost < nuwls_solver.opt_unsat_weight)
                 {
-                  saveModel(solver->model, currCost);
-                  solver->model.copyTo(best_model);
-                  nuwls_solver.opt_unsat_weight = currCost;
+                  nuwls_solver.opt_unsat_weight = polosatCost;
                   nuwls_solver.max_flips = step + nuwls_solver.max_non_improve_flip;
-                  cout << "c polosat improved the model to " << currCost << endl;
-                  cout << "o " << currCost << endl;
-                  printf("c timeo %u %" PRId64 " \n", (unsigned)ceil(Torc::Instance()->WallTimePassed()), currCost);	
+                  time_limit_for_ls = get_runtime() + nuwlsTimeLimit;
+                  for (int v = 1; v <= nuwls_solver.num_vars; ++v)
+                  {
+                    if (model[v - 1] == l_False)
+                      nuwls_solver.cur_soln[v] = 0;
+                    else
+                      nuwls_solver.cur_soln[v] = 1;
+                  }
                 }
-                else
-                {
-                  cout << "c polosat did not improve the model" << endl;
-                }
-              } 
+              }
             }
           }
         }
