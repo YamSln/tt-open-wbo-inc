@@ -28,6 +28,7 @@
 #include <signal.h>
 #include <limits>
 #include <memory>
+#include <unordered_set>
 #include "MaxSAT.h"
 #include "Encoder.h"
 #include "SATLike.h"
@@ -316,9 +317,76 @@ lbool MaxSAT::polosat(Solver *solver, vec<Lit> &assumptions, vec<Lit> &obsVecLit
     cout << "c nuwlsTimeLimit = " << nuwlsTimeLimit << endl;
     
     int time_limit_for_ls = nuwlsTimeLimit;
+    auto Polosat = [&]()
+    {
+      if (model.size() == 0)
+        return l_Undef;
+      
+      solver->_user_phase_saving.clear();
+      solver->_user_phase_saving.growTo(solver->nVars(), l_Undef);
+      for (int i = 0; i < observables.size(); i++)
+          solver->_user_phase_saving[var(observables[i])] = l_False;
+      
+      bool goodEpoch = true;
+      auto bestCost = nuwls_solver.opt_unsat_weight;
+      vec<Lit> assumps;
+      vec<Lit> badLits;
+      unordered_set<int> objVars;
+      objVars.reserve(observables.size());
+      for (int i = 0; i < observables.size(); i++)
+        objVars.insert(var(observables[i]));
+      
+      while (goodEpoch && bestCost > 0)
+      {
+        goodEpoch = false;
+        badLits.clear();
+        for (int i = 0; i < observables.size(); i++)
+        {
+          if (model[var(observables[i])] == l_True)
+            badLits.push(observables[i]);
+        }
+        while (badLits.size() > 0)
+        {
+          Lit p = badLits.last();
+          badLits.pop();
+          for (int i = 0; i < solver->nVars(); i++)
+            solver->_user_phase_saving[i] = objVars.contains(i) ? l_False : model[i];
+          
+          assumps.push(~p);
+          solver->setConfBudget(Torc::Instance()->GetMsConflictsPerSatCall());
+          auto res = searchSATSolver(solver, assumps);
+          solver->budgetOffConflict();
+          assumps.pop();
+
+          if (res == l_True)
+          {
+            auto currCost = computeCostModel(solver->model);
+            if (currCost < bestCost)
+            {
+              bestCost = currCost;
+              saveModel(solver->model, bestCost);
+              goodEpoch = true;
+
+              cout << "c POLO_IMPROVED" << endl;
+              printf("c timeo %u %" PRId64 " \n", (unsigned)ceil(Torc::Instance()->WallTimePassed()), bestCost);
+              if (bestCost == 0)
+                break;
+            }
+            int writePos = 0;
+            for (int i = 0; i < badLits.size(); i++) 
+              if (solver->model[var(badLits[i])] == l_False)
+                badLits[writePos++] = badLits[i];
+            badLits.shrink(badLits.size() - writePos);
+          }
+        }
+      }
+      model.copyTo(solver->model);
+      solver->_user_phase_saving.clear();
+      return res;
+    };
     if (nuwls_solver.if_using_neighbor)
     {
-      for (int step = 1; step < nuwls_solver.max_flips; ++step)
+      for (long long step = 1; step < nuwls_solver.max_flips; ++step)
       {
         if (nuwls_solver.hard_unsat_nb == 0)
         {
@@ -360,11 +428,32 @@ lbool MaxSAT::polosat(Solver *solver, vec<Lit> &assumptions, vec<Lit> &obsVecLit
           if (get_runtime() > time_limit_for_ls) // (breakTest == 17470)
             break;
         }
+        if (step == nuwls_solver.max_flips - 1)
+        {
+          auto res = Polosat();
+          if (res == l_True) 
+          {
+            auto polosatCost = computeCostModel(solver->model);
+            if (polosatCost < nuwls_solver.opt_unsat_weight)
+            {
+              nuwls_solver.opt_unsat_weight = polosatCost;
+              nuwls_solver.max_flips = step + nuwls_solver.max_non_improve_flip;
+              time_limit_for_ls = get_runtime() + nuwlsTimeLimit;
+              for (int v = 1; v <= nuwls_solver.num_vars; ++v)
+              {
+                if (model[v - 1] == l_False)
+                  nuwls_solver.cur_soln[v] = 0;
+                else
+                  nuwls_solver.cur_soln[v] = 1;
+              }
+            }
+          }
+        }
       }
     }
     else
     {
-      for (int step = 1; step < nuwls_solver.max_flips; ++step)
+      for (long long step = 1; step < nuwls_solver.max_flips; ++step)
       {
         if (nuwls_solver.hard_unsat_nb == 0)
         {
@@ -405,6 +494,27 @@ lbool MaxSAT::polosat(Solver *solver, vec<Lit> &assumptions, vec<Lit> &obsVecLit
 			++breakTest;
           if (get_runtime() > time_limit_for_ls) // (breakTest == 17470)
             break;
+        }
+        if (step == nuwls_solver.max_flips - 1)
+        {
+          auto res = Polosat();
+          if (res == l_True) 
+          {
+            auto polosatCost = computeCostModel(solver->model);
+            if (polosatCost < nuwls_solver.opt_unsat_weight)
+            {
+              nuwls_solver.opt_unsat_weight = polosatCost;
+              nuwls_solver.max_flips = step + nuwls_solver.max_non_improve_flip;
+              time_limit_for_ls = get_runtime() + nuwlsTimeLimit;
+              for (int v = 1; v <= nuwls_solver.num_vars; ++v)
+              {
+                if (model[v - 1] == l_False)
+                  nuwls_solver.cur_soln[v] = 0;
+                else
+                  nuwls_solver.cur_soln[v] = 1;
+              }
+            }
+          }
         }
       }
     }
