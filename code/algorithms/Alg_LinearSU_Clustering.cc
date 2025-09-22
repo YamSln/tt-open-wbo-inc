@@ -965,14 +965,20 @@ void LinearSUClustering::bmoSearch(){
           solver->_user_phase_saving.clear();
           return res;
         };
+        bool improvement = false;
+        long long nonImprovedSteps = 0;
+        const long long maxNonImprovedSteps = 1000000;
         // if (nuwls_solver.if_using_neighbor)
         {
           for (step = 1; step < nuwls_solver.max_flips; ++step)
           {
+            improvement = false;
             if (nuwls_solver.hard_unsat_nb == 0)
             {
               if (nuwls_solver.soft_unsat_weight < nuwls_solver.opt_unsat_weight)
               {
+                improvement = true;
+                nonImprovedSteps = 0;
                 nuwls_solver.best_soln_feasible = 1;
                 nuwls_solver.local_soln_feasible = 1;
                 nuwls_solver.max_flips = step + nuwls_solver.max_non_improve_flip;
@@ -997,6 +1003,34 @@ void LinearSUClustering::bmoSearch(){
         printf("c timeo %u %" PRId64 " \n", (unsigned)ceil(Torc::Instance()->WallTimePassed()), nuwls_solver.opt_unsat_weight);
                 if (nuwls_solver.opt_unsat_weight == 0)
                   break;
+              }
+            }
+            if (improvement)
+              nonImprovedSteps = 0;
+            else
+              nonImprovedSteps++;
+            
+            if (nonImprovedSteps >= maxNonImprovedSteps)
+            {
+              nonImprovedSteps = 0;
+              auto res = Polosat();
+              if (res == l_True) 
+              {
+                auto polosatCost = computeOriginalCost(solver->model);
+                if (polosatCost < nuwls_solver.opt_unsat_weight)
+                {
+                  cout << "c POLO_IMPROVED at step " << step << endl;
+                  nuwls_solver.opt_unsat_weight = polosatCost;
+                  for (int v = 1; v <= nuwls_solver.num_vars; ++v)
+                  {
+                    if (model[v - 1] == l_False)
+                      nuwls_solver.cur_soln[v] = 0;
+                    else
+                      nuwls_solver.cur_soln[v] = 1;
+                  }
+                  if (nuwls_solver.opt_unsat_weight == 0)
+                    break;
+                }
               }
             }
             int flipvar = nuwls_solver.pick_var();
