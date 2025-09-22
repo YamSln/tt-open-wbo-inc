@@ -898,6 +898,10 @@ void LinearSUClustering::bmoSearch(){
         int time_limit_for_ls = nuwlsTimeLimit;
         
         long long step = 0;
+        unordered_set<int> objVars;
+        objVars.reserve(objFunction.size());
+          for (int i = 0; i < objFunction.size(); i++)
+            objVars.insert(var(objFunction[i]));
         auto Polosat = [&]()
         {
           if (model.size() == 0)
@@ -912,10 +916,6 @@ void LinearSUClustering::bmoSearch(){
           auto bestCost = nuwls_solver.opt_unsat_weight;
           vec<Lit> assumps;
           vec<Lit> badLits;
-          unordered_set<int> objVars;
-          objVars.reserve(objFunction.size());
-          for (int i = 0; i < objFunction.size(); i++)
-            objVars.insert(var(objFunction[i]));
           
           while (goodEpoch && bestCost > 0)
           {
@@ -955,7 +955,7 @@ void LinearSUClustering::bmoSearch(){
                 }
                 int writePos = 0;
                 for (int i = 0; i < badLits.size(); i++) 
-                  if (solver->model[var(badLits[i])] == l_False)
+                  if (solver->model[var(badLits[i])] == l_True)
                     badLits[writePos++] = badLits[i];
                 badLits.shrink(badLits.size() - writePos);
               }
