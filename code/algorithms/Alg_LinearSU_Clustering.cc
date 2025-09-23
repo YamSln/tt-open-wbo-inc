@@ -1028,7 +1028,7 @@ void LinearSUClustering::bmoSearch(){
             }
             if (step == nuwls_solver.max_flips - 1)
             {
-              auto res = Polosat(false);
+              auto res = Polosat(true);
               if (res == l_True) 
               {
                 auto polosatCost = computeOriginalCost(solver->model);
@@ -1044,6 +1044,9 @@ void LinearSUClustering::bmoSearch(){
                     else
                       nuwls_solver.cur_soln[v] = 1;
                   }
+                  for (int i = 0; i < objFunction.size(); i++)
+                    if (solver->model[var(objFunction[i])] == l_True)
+                      badLits.push(objFunction[i]);
                 }
               }
             }

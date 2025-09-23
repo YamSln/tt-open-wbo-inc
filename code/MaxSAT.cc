@@ -300,6 +300,11 @@ lbool MaxSAT::polosat(Solver *solver, vec<Lit> &assumptions, vec<Lit> &obsVecLit
     nuwls_solver.settings();
 
     vector<int> init_solu(maxsat_formula->nuwls_nvars + 1);
+    unordered_set<int> objVars;
+    objVars.reserve(observables.size());
+    for (int i = 0; i < observables.size(); i++)
+      objVars.insert(var(observables[i]));
+    vec<Lit> badLits;
     for (int i = 0; i < maxsat_formula->nuwls_nvars; ++i)
     {
       if (solver->model[i] == l_False)
@@ -307,6 +312,9 @@ lbool MaxSAT::polosat(Solver *solver, vec<Lit> &assumptions, vec<Lit> &obsVecLit
       else
         init_solu[i + 1] = 1;
     }
+    for (int i = 0; i < observables.size(); i++)
+      if (solver->model[var(observables[i])] == l_True)
+        badLits.push(observables[i]);
 
     nuwls_solver.init(init_solu);
     nuwls_solver.opt_unsat_weight = currCost;
@@ -317,7 +325,7 @@ lbool MaxSAT::polosat(Solver *solver, vec<Lit> &assumptions, vec<Lit> &obsVecLit
     cout << "c nuwlsTimeLimit = " << nuwlsTimeLimit << endl;
     
     int time_limit_for_ls = nuwlsTimeLimit;
-    auto Polosat = [&]()
+    auto Polosat = [&](bool runSingle)
     {
       if (model.size() == 0)
         return l_Undef;
@@ -328,23 +336,24 @@ lbool MaxSAT::polosat(Solver *solver, vec<Lit> &assumptions, vec<Lit> &obsVecLit
           solver->_user_phase_saving[var(observables[i])] = l_False;
       
       bool goodEpoch = true;
+      bool firstEpoch = true;
       auto bestCost = nuwls_solver.opt_unsat_weight;
       vec<Lit> assumps;
-      vec<Lit> badLits;
-      unordered_set<int> objVars;
-      objVars.reserve(observables.size());
-      for (int i = 0; i < observables.size(); i++)
-        objVars.insert(var(observables[i]));
       
       while (goodEpoch && bestCost > 0)
       {
         goodEpoch = false;
-        badLits.clear();
-        for (int i = 0; i < observables.size(); i++)
+        if (!firstEpoch)
         {
-          if (model[var(observables[i])] == l_True)
-            badLits.push(observables[i]);
+          badLits.clear();
+          for (int i = 0; i < observables.size(); i++)
+          {
+            if (model[var(observables[i])] == l_True)
+              badLits.push(observables[i]);
+          }
         }
+        else
+          firstEpoch = false;
         while (badLits.size() > 0)
         {
           Lit p = badLits.last();
@@ -374,11 +383,13 @@ lbool MaxSAT::polosat(Solver *solver, vec<Lit> &assumptions, vec<Lit> &obsVecLit
             }
             int writePos = 0;
             for (int i = 0; i < badLits.size(); i++) 
-              if (solver->model[var(badLits[i])] == l_False)
+              if (solver->model[var(badLits[i])] == l_True)
                 badLits[writePos++] = badLits[i];
             badLits.shrink(badLits.size() - writePos);
           }
         }
+        if (runSingle)
+          break;
       }
       model.copyTo(solver->model);
       solver->_user_phase_saving.clear();
@@ -407,6 +418,11 @@ lbool MaxSAT::polosat(Solver *solver, vec<Lit> &assumptions, vec<Lit> &obsVecLit
               else
                 solver->model[v - 1] = l_True;
             }
+            int writePos = 0;
+            for (int i = 0; i < badLits.size(); i++) 
+              if (solver->model[var(badLits[i])] == l_True)
+                badLits[writePos++] = badLits[i];
+            badLits.shrink(badLits.size() - writePos);
             // modify by ychu
             auto oriCost = nuwls_solver.opt_unsat_weight;
             saveModel(solver->model, oriCost);
@@ -430,7 +446,7 @@ lbool MaxSAT::polosat(Solver *solver, vec<Lit> &assumptions, vec<Lit> &obsVecLit
         }
         if (step == nuwls_solver.max_flips - 1)
         {
-          auto res = Polosat();
+          auto res = Polosat(true);
           if (res == l_True) 
           {
             auto polosatCost = computeCostModel(solver->model);
@@ -446,6 +462,9 @@ lbool MaxSAT::polosat(Solver *solver, vec<Lit> &assumptions, vec<Lit> &obsVecLit
                 else
                   nuwls_solver.cur_soln[v] = 1;
               }
+              for (int i = 0; i < observables.size(); i++)
+                if (solver->model[var(observables[i])] == l_True)
+                  badLits.push(observables[i]);
             }
           }
         }
@@ -474,6 +493,11 @@ lbool MaxSAT::polosat(Solver *solver, vec<Lit> &assumptions, vec<Lit> &obsVecLit
               else
                 solver->model[v - 1] = l_True;
             }
+            int writePos = 0;
+            for (int i = 0; i < badLits.size(); i++) 
+              if (solver->model[var(badLits[i])] == l_True)
+                badLits[writePos++] = badLits[i];
+            badLits.shrink(badLits.size() - writePos);
             //modify by ychu
             auto oriCost = nuwls_solver.opt_unsat_weight;
             saveModel(solver->model, oriCost);
@@ -497,7 +521,7 @@ lbool MaxSAT::polosat(Solver *solver, vec<Lit> &assumptions, vec<Lit> &obsVecLit
         }
         if (step == nuwls_solver.max_flips - 1)
         {
-          auto res = Polosat();
+          auto res = Polosat(true);
           if (res == l_True) 
           {
             auto polosatCost = computeCostModel(solver->model);
@@ -513,6 +537,9 @@ lbool MaxSAT::polosat(Solver *solver, vec<Lit> &assumptions, vec<Lit> &obsVecLit
                 else
                   nuwls_solver.cur_soln[v] = 1;
               }
+              for (int i = 0; i < observables.size(); i++)
+                if (solver->model[var(observables[i])] == l_True)
+                  badLits.push(observables[i]);
             }
           }
         }
