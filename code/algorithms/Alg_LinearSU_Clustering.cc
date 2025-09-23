@@ -907,58 +907,48 @@ void LinearSUClustering::bmoSearch(){
           if (model.size() == 0)
             return l_Undef;
           
-          solver->_user_phase_saving.clear();
-          solver->_user_phase_saving.growTo(solver->nVars(), l_Undef);
-          for (int i = 0; i < objFunction.size(); i++)
-              solver->_user_phase_saving[var(objFunction[i])] = l_False;
-          
-          bool goodEpoch = true;
           auto bestCost = nuwls_solver.opt_unsat_weight;
           vec<Lit> assumps;
           vec<Lit> badLits;
           
-          while (goodEpoch && bestCost > 0)
+          solver->_user_phase_saving.clear();
+          solver->_user_phase_saving.growTo(solver->nVars(), l_Undef);
+          for (int i = 0; i < objFunction.size(); i++)
           {
-            goodEpoch = false;
-            badLits.clear();
-            for (int i = 0; i < objFunction.size(); i++)
-            {
-              if (model[var(objFunction[i])] == l_True)
-                badLits.push(objFunction[i]);
-            }
-            while (badLits.size() > 0)
-            {
-              Lit p = badLits.last();
-              badLits.pop();
-              for (int i = 0; i < solver->nVars(); i++)
-                solver->_user_phase_saving[i] = objVars.contains(i) ? l_False : model[i];
-              
-              assumps.push(~p);
-              solver->setConfBudget(Torc::Instance()->GetMsConflictsPerSatCall());
-              auto res = searchSATSolver(solver, assumps);
-              solver->budgetOffConflict();
-              assumps.pop();
+            if (model[var(objFunction[i])] == l_True)
+              badLits.push(objFunction[i]);
+          }
+          while (badLits.size() > 0)
+          {
+            Lit p = badLits.last();
+            badLits.pop();
+            for (int i = 0; i < solver->nVars(); i++)
+              solver->_user_phase_saving[i] = objVars.contains(i) ? l_False : model[i];
+            
+            assumps.push(~p);
+            solver->setConfBudget(Torc::Instance()->GetMsConflictsPerSatCall());
+            auto res = searchSATSolver(solver, assumps);
+            solver->budgetOffConflict();
+            assumps.pop();
 
-              if (res == l_True)
+            if (res == l_True)
+            {
+              auto currCost = computeOriginalCost(solver->model);
+              if (currCost < bestCost)
               {
-                auto currCost = computeOriginalCost(solver->model);
-                if (currCost < bestCost)
-                {
-                  bestCost = currCost;
-                  saveModel(solver->model, bestCost);
-                  goodEpoch = true;
+                bestCost = currCost;
+                saveModel(solver->model, bestCost);
 
-                  cout << "c POLO_IMPROVED" << endl;
-                  printf("c timeo %u %" PRId64 " \n", (unsigned)ceil(Torc::Instance()->WallTimePassed()), bestCost);
-                  if (bestCost == 0)
-                    break;
-                }
-                int writePos = 0;
-                for (int i = 0; i < badLits.size(); i++) 
-                  if (solver->model[var(badLits[i])] == l_True)
-                    badLits[writePos++] = badLits[i];
-                badLits.shrink(badLits.size() - writePos);
+                cout << "c POLO_IMPROVED" << endl;
+                printf("c timeo %u %" PRId64 " \n", (unsigned)ceil(Torc::Instance()->WallTimePassed()), bestCost);
+                if (bestCost == 0)
+                  break;
               }
+              int writePos = 0;
+              for (int i = 0; i < badLits.size(); i++) 
+                if (solver->model[var(badLits[i])] == l_True)
+                  badLits[writePos++] = badLits[i];
+              badLits.shrink(badLits.size() - writePos);
             }
           }
           model.copyTo(solver->model);
