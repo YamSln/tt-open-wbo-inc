@@ -446,6 +446,8 @@ lbool MaxSAT::polosat(Solver *solver, vec<Lit> &assumptions, vec<Lit> &obsVecLit
             auto polosatCost = computeCostModel(solver->model);
             if (polosatCost < nuwls_solver.opt_unsat_weight)
             {
+              nuwls_solver.best_soln_feasible = 1;
+              nuwls_solver.local_soln_feasible = 1;
               nuwls_solver.opt_unsat_weight = polosatCost;
               nuwls_solver.max_flips = step + nuwls_solver.max_non_improve_flip;
               time_limit_for_ls = get_runtime() + nuwlsTimeLimit;
@@ -521,6 +523,8 @@ lbool MaxSAT::polosat(Solver *solver, vec<Lit> &assumptions, vec<Lit> &obsVecLit
             auto polosatCost = computeCostModel(solver->model);
             if (polosatCost < nuwls_solver.opt_unsat_weight)
             {
+              nuwls_solver.best_soln_feasible = 1;
+              nuwls_solver.local_soln_feasible = 1;
               nuwls_solver.opt_unsat_weight = polosatCost;
               nuwls_solver.max_flips = step + nuwls_solver.max_non_improve_flip;
               time_limit_for_ls = get_runtime() + nuwlsTimeLimit;

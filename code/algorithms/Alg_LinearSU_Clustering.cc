@@ -1028,6 +1028,8 @@ void LinearSUClustering::bmoSearch(){
                 auto polosatCost = computeOriginalCost(solver->model);
                 if (polosatCost < nuwls_solver.opt_unsat_weight)
                 {
+                  nuwls_solver.best_soln_feasible = 1;
+                  nuwls_solver.local_soln_feasible = 1;
                   nuwls_solver.opt_unsat_weight = polosatCost;
                   nuwls_solver.max_flips = step + nuwls_solver.max_non_improve_flip;
                   time_limit_for_ls = get_runtime() + nuwlsTimeLimit;
