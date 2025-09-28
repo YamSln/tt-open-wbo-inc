@@ -36,6 +36,7 @@
 #include <fstream>
 #include <iostream>
 #include <unordered_set>
+#include <vector>
 
 #define MAX_CLAUSES 3000000
 
@@ -884,7 +885,7 @@ void LinearSUClustering::bmoSearch(){
         objVars.reserve(objFunction.size());
         for (int i = 0; i < objFunction.size(); i++)
           objVars.insert(var(objFunction[i]));
-        vec<Lit> badLits;
+        vector<Lit> badLits;
         for (int i = 0; i < maxsat_formula->nuwls_nvars; ++i)
         {
           if (solver->model[i] == l_False)
@@ -894,7 +895,7 @@ void LinearSUClustering::bmoSearch(){
         }
         for (int i = 0; i < objFunction.size(); i++)
           if (solver->model[var(objFunction[i])] == l_True)
-            badLits.push(objFunction[i]);
+            badLits.push_back(objFunction[i]);
         
         nuwls_solver.init(init_solu);
         nuwls_solver.opt_unsat_weight = currCost;
@@ -925,15 +926,15 @@ void LinearSUClustering::bmoSearch(){
               for (int i = 0; i < objFunction.size(); i++)
               {
                 if (model[var(objFunction[i])] == l_True)
-                  badLits.push(objFunction[i]);
+                  badLits.push_back(objFunction[i]);
               }
             }
             else
               firstEpoch = false;
             while (badLits.size() > 0)
             {
-              Lit p = badLits.last();
-              badLits.pop();
+              Lit p = badLits.back();
+              badLits.pop_back();
               
               assumps.push(~p);
               solver->setConfBudget(Torc::Instance()->GetMsConflictsPerSatCall());
@@ -961,7 +962,7 @@ void LinearSUClustering::bmoSearch(){
                 for (int i = 0; i < badLits.size(); i++) 
                   if (solver->model[var(badLits[i])] == l_True)
                     badLits[writePos++] = badLits[i];
-                badLits.shrink(badLits.size() - writePos);
+                badLits.resize(writePos);
               }
             }
             if (runSingle)
@@ -997,7 +998,7 @@ void LinearSUClustering::bmoSearch(){
                 for (int i = 0; i < badLits.size(); i++) 
                   if (solver->model[var(badLits[i])] == l_True)
                     badLits[writePos++] = badLits[i];
-                badLits.shrink(badLits.size() - writePos);
+                badLits.resize(writePos);
                 //best_cost = nuwls_solver.opt_unsat_weight;
                 uint64_t oriCost = nuwls_solver.opt_unsat_weight; // computeOriginalCost(solver->model);
                 // cout << "o " << oriCost << endl;
@@ -1022,6 +1023,14 @@ void LinearSUClustering::bmoSearch(){
             }
             if (step == nuwls_solver.max_flips - 1)
             {
+              std::sort(badLits.begin(), badLits.end(), [&](Lit l1, Lit l2) {
+                return nuwls_solver.score[var(l1)+1] < nuwls_solver.score[var(l2)+1];
+              });
+              double score = nuwls_solver.score[var(badLits[badLits.size() - 1])+1];
+              if (score > 0)
+              {
+                cout << "c NON_ZERO_SCORE " << score << endl;
+              }
               auto res = Polosat(true);
               if (res == l_True) 
               {
@@ -1042,7 +1051,7 @@ void LinearSUClustering::bmoSearch(){
                   }
                   for (int i = 0; i < objFunction.size(); i++)
                     if (solver->model[var(objFunction[i])] == l_True)
-                      badLits.push(objFunction[i]);
+                      badLits.push_back(objFunction[i]);
                 }
               }
             }

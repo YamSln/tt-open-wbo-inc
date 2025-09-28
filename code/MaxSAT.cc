@@ -29,6 +29,7 @@
 #include <limits>
 #include <memory>
 #include <unordered_set>
+#include <vector>
 #include "MaxSAT.h"
 #include "Encoder.h"
 #include "SATLike.h"
@@ -304,7 +305,7 @@ lbool MaxSAT::polosat(Solver *solver, vec<Lit> &assumptions, vec<Lit> &obsVecLit
     objVars.reserve(observables.size());
     for (int i = 0; i < observables.size(); i++)
       objVars.insert(var(observables[i]));
-    vec<Lit> badLits;
+    vector<Lit> badLits;
     for (int i = 0; i < maxsat_formula->nuwls_nvars; ++i)
     {
       if (solver->model[i] == l_False)
@@ -314,7 +315,7 @@ lbool MaxSAT::polosat(Solver *solver, vec<Lit> &assumptions, vec<Lit> &obsVecLit
     }
     for (int i = 0; i < observables.size(); i++)
       if (solver->model[var(observables[i])] == l_True)
-        badLits.push(observables[i]);
+        badLits.push_back(observables[i]);
 
     nuwls_solver.init(init_solu);
     nuwls_solver.opt_unsat_weight = currCost;
@@ -344,15 +345,15 @@ lbool MaxSAT::polosat(Solver *solver, vec<Lit> &assumptions, vec<Lit> &obsVecLit
           for (int i = 0; i < observables.size(); i++)
           {
             if (model[var(observables[i])] == l_True)
-              badLits.push(observables[i]);
+              badLits.push_back(observables[i]);
           }
         }
         else
           firstEpoch = false;
         while (badLits.size() > 0)
         {
-          Lit p = badLits.last();
-          badLits.pop();
+          Lit p = badLits.back();
+          badLits.pop_back();
           
           assumps.push(~p);
           solver->setConfBudget(Torc::Instance()->GetMsConflictsPerSatCall());
@@ -380,7 +381,7 @@ lbool MaxSAT::polosat(Solver *solver, vec<Lit> &assumptions, vec<Lit> &obsVecLit
             for (int i = 0; i < badLits.size(); i++) 
               if (solver->model[var(badLits[i])] == l_True)
                 badLits[writePos++] = badLits[i];
-            badLits.shrink(badLits.size() - writePos);
+            badLits.resize(writePos);
           }
         }
         if (runSingle)
@@ -416,7 +417,7 @@ lbool MaxSAT::polosat(Solver *solver, vec<Lit> &assumptions, vec<Lit> &obsVecLit
             for (int i = 0; i < badLits.size(); i++) 
               if (solver->model[var(badLits[i])] == l_True)
                 badLits[writePos++] = badLits[i];
-            badLits.shrink(badLits.size() - writePos);
+            badLits.resize(writePos);
             // modify by ychu
             auto oriCost = nuwls_solver.opt_unsat_weight;
             saveModel(solver->model, oriCost);
@@ -440,6 +441,14 @@ lbool MaxSAT::polosat(Solver *solver, vec<Lit> &assumptions, vec<Lit> &obsVecLit
         }
         if (step == nuwls_solver.max_flips - 1)
         {
+          std::sort(badLits.begin(), badLits.end(), [&](Lit l1, Lit l2) {
+            return nuwls_solver.score[var(l1)+1] < nuwls_solver.score[var(l2)+1];
+          });
+          double score = nuwls_solver.score[var(badLits[badLits.size() - 1])+1];
+          if (score > 0)
+          {
+            cout << "c NON_ZERO_SCORE " << score << endl;
+          }
           auto res = Polosat(true);
           if (res == l_True) 
           {
@@ -460,7 +469,7 @@ lbool MaxSAT::polosat(Solver *solver, vec<Lit> &assumptions, vec<Lit> &obsVecLit
               }
               for (int i = 0; i < observables.size(); i++)
                 if (solver->model[var(observables[i])] == l_True)
-                  badLits.push(observables[i]);
+                  badLits.push_back(observables[i]);
             }
           }
         }
@@ -493,7 +502,7 @@ lbool MaxSAT::polosat(Solver *solver, vec<Lit> &assumptions, vec<Lit> &obsVecLit
             for (int i = 0; i < badLits.size(); i++) 
               if (solver->model[var(badLits[i])] == l_True)
                 badLits[writePos++] = badLits[i];
-            badLits.shrink(badLits.size() - writePos);
+            badLits.resize(writePos);
             //modify by ychu
             auto oriCost = nuwls_solver.opt_unsat_weight;
             saveModel(solver->model, oriCost);
@@ -517,6 +526,14 @@ lbool MaxSAT::polosat(Solver *solver, vec<Lit> &assumptions, vec<Lit> &obsVecLit
         }
         if (step == nuwls_solver.max_flips - 1)
         {
+          std::sort(badLits.begin(), badLits.end(), [&](Lit l1, Lit l2) {
+            return nuwls_solver.score[var(l1)+1] < nuwls_solver.score[var(l2)+1];
+          });
+          double score = nuwls_solver.score[var(badLits[badLits.size() - 1])+1];
+          if (score > 0)
+          {
+            cout << "c NON_ZERO_SCORE " << score << endl;
+          }
           auto res = Polosat(true);
           if (res == l_True) 
           {
@@ -537,7 +554,7 @@ lbool MaxSAT::polosat(Solver *solver, vec<Lit> &assumptions, vec<Lit> &obsVecLit
               }
               for (int i = 0; i < observables.size(); i++)
                 if (solver->model[var(observables[i])] == l_True)
-                  badLits.push(observables[i]);
+                  badLits.push_back(observables[i]);
             }
           }
         }
