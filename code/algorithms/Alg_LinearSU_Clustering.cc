@@ -911,11 +911,6 @@ void LinearSUClustering::bmoSearch(){
           if (model.size() == 0)
             return l_Undef;
           
-          solver->_user_phase_saving.clear();
-          solver->_user_phase_saving.growTo(solver->nVars(), l_Undef);
-          for (int i = 0; i < objFunction.size(); i++)
-              solver->_user_phase_saving[var(objFunction[i])] = l_False;
-          
           bool goodEpoch = true;
           bool firstEpoch = true;
           auto bestCost = nuwls_solver.opt_unsat_weight;
@@ -939,12 +934,12 @@ void LinearSUClustering::bmoSearch(){
             {
               Lit p = badLits.last();
               badLits.pop();
-              for (int i = 0; i < solver->nVars(); i++)
-                solver->_user_phase_saving[i] = objVars.contains(i) ? l_False : model[i];
               
               assumps.push(~p);
               solver->setConfBudget(Torc::Instance()->GetMsConflictsPerSatCall());
+              solver->solvingPoloOn();
               auto res = searchSATSolver(solver, assumps);
+              solver->solvingPoloOff();
               solver->budgetOffConflict();
               assumps.pop();
 
@@ -973,7 +968,6 @@ void LinearSUClustering::bmoSearch(){
               break;
           }
           model.copyTo(solver->model);
-          solver->_user_phase_saving.clear();
           return res;
         };
         // if (nuwls_solver.if_using_neighbor)

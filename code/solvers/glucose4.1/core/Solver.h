@@ -282,6 +282,10 @@ public:
     int	chrono;
     int trail_saving_strat;        
     inline std::string GetLatestStatStr() { return ""; }
+
+    // Solving during polosat
+    void solvingPoloOn() { poloSolving = true; }
+    void solvingPoloOff() { poloSolving = false; }
 protected:
 
     long curRestart;
@@ -474,6 +478,8 @@ protected:
     bool     withinBudget     ()      const;
     inline bool isSelector(Var v) {return (incremental && v>nbVarsInitialFormula);}
 	ConflictData FindConflictLevel(CRef cind);
+
+    bool poloSolving = false;
 	
 	void oldTrailClear(); // Trail saving helper
     // Static helpers:

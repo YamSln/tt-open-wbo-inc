@@ -330,11 +330,6 @@ lbool MaxSAT::polosat(Solver *solver, vec<Lit> &assumptions, vec<Lit> &obsVecLit
       if (model.size() == 0)
         return l_Undef;
       
-      solver->_user_phase_saving.clear();
-      solver->_user_phase_saving.growTo(solver->nVars(), l_Undef);
-      for (int i = 0; i < observables.size(); i++)
-          solver->_user_phase_saving[var(observables[i])] = l_False;
-      
       bool goodEpoch = true;
       bool firstEpoch = true;
       auto bestCost = nuwls_solver.opt_unsat_weight;
@@ -358,12 +353,12 @@ lbool MaxSAT::polosat(Solver *solver, vec<Lit> &assumptions, vec<Lit> &obsVecLit
         {
           Lit p = badLits.last();
           badLits.pop();
-          for (int i = 0; i < solver->nVars(); i++)
-            solver->_user_phase_saving[i] = objVars.contains(i) ? l_False : model[i];
           
           assumps.push(~p);
           solver->setConfBudget(Torc::Instance()->GetMsConflictsPerSatCall());
+          solver->solvingPoloOn();
           auto res = searchSATSolver(solver, assumps);
+          solver->solvingPoloOff();
           solver->budgetOffConflict();
           assumps.pop();
 
@@ -392,7 +387,6 @@ lbool MaxSAT::polosat(Solver *solver, vec<Lit> &assumptions, vec<Lit> &obsVecLit
           break;
       }
       model.copyTo(solver->model);
-      solver->_user_phase_saving.clear();
       return res;
     };
     if (nuwls_solver.if_using_neighbor)

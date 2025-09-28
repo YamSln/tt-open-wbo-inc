@@ -71,7 +71,7 @@ lbool Solver::solveLimited(const vec<Lit>& assumps)
 	const uint64_t confBudget = confBudgets[0] >= 0 && confBudgets[1] >= 0 ? (uint64_t)std::min(confBudgets[0], confBudgets[1]) : 
 		confBudgets[0] < 0 && confBudgets[1] < 0 ? numeric_limits<uint64_t>::max() : confBudgets[0] < 0 ? (uint64_t)confBudgets[1] : (uint64_t)confBudgets[0];
 	
-	if (Torc::Instance()->GetPolOptimistic() && !polarityOptimisticSet)
+	if (Torc::Instance()->GetPolOptimistic() && (!polarityOptimisticSet || poloSolving))
 	{
 		for (int v = 0; v < nVars(); ++v)
 		{

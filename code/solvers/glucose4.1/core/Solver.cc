@@ -756,7 +756,7 @@ Lit Solver::pickBranchLit() {
     static unsigned mutcombs = 0;
     static const unsigned poc = 10000;*/
    
-   const bool isTorcOptimisticAndCurrVarTarget = !Torc::Instance()->GetPolOptimistic() ? false : next < Torc::Instance()->TargetIsVarTarget().size() && Torc::Instance()->TargetIsVarTarget()[next]; 
+   const bool isTorcOptimisticAndCurrVarTarget = (!Torc::Instance()->GetPolOptimistic() && !poloSolving) ? false : next < Torc::Instance()->TargetIsVarTarget().size() && Torc::Instance()->TargetIsVarTarget()[next]; 
       
     if (isTorcOptimisticAndCurrVarTarget)
     {

@@ -42,6 +42,10 @@ namespace ToporWrapper
 			inline bool okay() const { return !topor.IsError(); } 
 			inline lbool value(Var x) const   { return G(topor.GetLitValue(T(x))); }
 			inline lbool value(Lit p) const   { return G(topor.GetLitValue(T(p))); }
+
+			// Solving during polosat
+			void solvingPoloOn() { poloSolving = true; }
+			void solvingPoloOff() { poloSolving = false; }
 			
 			// Glucose parameters, accessed by the solver. We declare them, but ignored in the code
 			double random_var_freq = 0;
@@ -72,6 +76,7 @@ namespace ToporWrapper
 			int varsNum = 0;			
 			int maxVarFixedPolarity = -1;	
 			bool polarityOptimisticSet = false;
+			bool poloSolving = false;
 			
 			inline TLit T(Lit l) const 
 			{ 
