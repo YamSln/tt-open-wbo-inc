@@ -325,6 +325,7 @@ lbool MaxSAT::polosat(Solver *solver, vec<Lit> &assumptions, vec<Lit> &obsVecLit
     cout << "c nuwlsTimeLimit = " << nuwlsTimeLimit << endl;
     
     int time_limit_for_ls = nuwlsTimeLimit;
+    bool obvNotImproved = false;
     auto Polosat = [&](bool runSingle)
     {
       if (model.size() == 0)
@@ -334,7 +335,8 @@ lbool MaxSAT::polosat(Solver *solver, vec<Lit> &assumptions, vec<Lit> &obsVecLit
       bool firstEpoch = true;
       auto bestCost = nuwls_solver.opt_unsat_weight;
       vec<Lit> assumps;
-      
+      assumps.growTo(observables.size());
+
       while (goodEpoch && bestCost > 0)
       {
         goodEpoch = false;
@@ -353,6 +355,14 @@ lbool MaxSAT::polosat(Solver *solver, vec<Lit> &assumptions, vec<Lit> &obsVecLit
         {
           Lit p = badLits.last();
           badLits.pop();
+
+          for (int i = observables.size() - 1; i >= 0; i--)
+          {
+            if (observables[i] != p)
+              assumps.push(model[var(observables[i])] == l_True ? observables[i] : ~observables[i]);
+            else
+              break;
+          }
           
           assumps.push(~p);
           solver->setConfBudget(Torc::Instance()->GetMsConflictsPerSatCall());
@@ -360,7 +370,7 @@ lbool MaxSAT::polosat(Solver *solver, vec<Lit> &assumptions, vec<Lit> &obsVecLit
           auto res = searchSATSolver(solver, assumps);
           solver->solvingPoloOff();
           solver->budgetOffConflict();
-          assumps.pop();
+          assumps.clear();
 
           if (res == l_True)
           {
@@ -376,11 +386,48 @@ lbool MaxSAT::polosat(Solver *solver, vec<Lit> &assumptions, vec<Lit> &obsVecLit
               if (bestCost == 0)
                 break;
             }
+            else
+              obvNotImproved = true;
             int writePos = 0;
             for (int i = 0; i < badLits.size(); i++) 
               if (solver->model[var(badLits[i])] == l_True)
                 badLits[writePos++] = badLits[i];
             badLits.shrink(badLits.size() - writePos);
+          }
+          else
+            obvNotImproved = true;
+          if (obvNotImproved)
+          {
+            cout << "c POLO_OBV_NOT_IMPROVED" << endl;
+            obvNotImproved = false;
+            assumps.push(~p);
+            solver->setConfBudget(Torc::Instance()->GetMsConflictsPerSatCall());
+            solver->solvingPoloOn();
+            auto res = searchSATSolver(solver, assumps);
+            solver->solvingPoloOff();
+            solver->budgetOffConflict();
+            assumps.pop();
+              
+            if (res == l_True)
+            {
+              auto currCost = computeCostModel(solver->model);
+              if (currCost < bestCost)
+              {
+                bestCost = currCost;
+                saveModel(solver->model, bestCost);
+                goodEpoch = true;
+
+                cout << "c POLO_IMPROVED" << endl;
+                printf("c timeo %u %" PRId64 " \n", (unsigned)ceil(Torc::Instance()->WallTimePassed()), bestCost);
+                if (bestCost == 0)
+                  break;
+              }
+              int writePos = 0;
+              for (int i = 0; i < badLits.size(); i++) 
+                if (solver->model[var(badLits[i])] == l_True)
+                  badLits[writePos++] = badLits[i];
+               badLits.shrink(badLits.size() - writePos);
+            }
           }
         }
         if (runSingle)

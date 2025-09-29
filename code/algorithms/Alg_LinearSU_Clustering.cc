@@ -885,6 +885,8 @@ void LinearSUClustering::bmoSearch(){
         for (int i = 0; i < objFunction.size(); i++)
           objVars.insert(var(objFunction[i]));
         vec<Lit> badLits;
+        vec<Lit> objAssumps;
+        objAssumps.growTo(objFunction.size());
         for (int i = 0; i < maxsat_formula->nuwls_nvars; ++i)
         {
           if (solver->model[i] == l_False)
@@ -906,6 +908,8 @@ void LinearSUClustering::bmoSearch(){
         int time_limit_for_ls = nuwlsTimeLimit;
         
         long long step = 0;
+        bool runPolosatOnce = true;
+        bool obvNotImproved = false;
         auto Polosat = [&](bool runSingle)
         {
           if (model.size() == 0)
@@ -915,6 +919,7 @@ void LinearSUClustering::bmoSearch(){
           bool firstEpoch = true;
           auto bestCost = nuwls_solver.opt_unsat_weight;
           vec<Lit> assumps;
+          assumps.growTo(objFunction.size());
           
           while (goodEpoch && bestCost > 0)
           {
@@ -934,15 +939,23 @@ void LinearSUClustering::bmoSearch(){
             {
               Lit p = badLits.last();
               badLits.pop();
-              
+
+              for (int i = objFunction.size() - 1; i >= 0; i--)
+              {
+                if (objFunction[i] != p)
+                  assumps.push(model[var(objFunction[i])] == l_True ? objFunction[i] : ~objFunction[i]);
+                else
+                  break;
+              }
+
               assumps.push(~p);
               solver->setConfBudget(Torc::Instance()->GetMsConflictsPerSatCall());
               solver->solvingPoloOn();
               auto res = searchSATSolver(solver, assumps);
               solver->solvingPoloOff();
               solver->budgetOffConflict();
-              assumps.pop();
-
+              assumps.clear();
+              
               if (res == l_True)
               {
                 auto currCost = computeOriginalCost(solver->model);
@@ -957,11 +970,48 @@ void LinearSUClustering::bmoSearch(){
                   if (bestCost == 0)
                     break;
                 }
+                else
+                  obvNotImproved = true;
                 int writePos = 0;
                 for (int i = 0; i < badLits.size(); i++) 
                   if (solver->model[var(badLits[i])] == l_True)
                     badLits[writePos++] = badLits[i];
                 badLits.shrink(badLits.size() - writePos);
+              }
+              else
+                obvNotImproved = true;
+              if (obvNotImproved)
+              {
+                cout << "c POLO_OBV_NOT_IMPROVED" << endl;
+                obvNotImproved = false;
+                assumps.push(~p);
+                solver->setConfBudget(Torc::Instance()->GetMsConflictsPerSatCall());
+                solver->solvingPoloOn();
+                auto res = searchSATSolver(solver, assumps);
+                solver->solvingPoloOff();
+                solver->budgetOffConflict();
+                assumps.pop();
+                
+                if (res == l_True)
+                {
+                  auto currCost = computeOriginalCost(solver->model);
+                  if (currCost < bestCost)
+                  {
+                    bestCost = currCost;
+                    saveModel(solver->model, bestCost);
+                    goodEpoch = true;
+
+                    cout << "c POLO_IMPROVED" << endl;
+                    printf("c timeo %u %" PRId64 " \n", (unsigned)ceil(Torc::Instance()->WallTimePassed()), bestCost);
+                    if (bestCost == 0)
+                      break;
+                  }
+                  int writePos = 0;
+                  for (int i = 0; i < badLits.size(); i++) 
+                    if (solver->model[var(badLits[i])] == l_True)
+                      badLits[writePos++] = badLits[i];
+                  badLits.shrink(badLits.size() - writePos);
+                }
               }
             }
             if (runSingle)
@@ -1022,6 +1072,10 @@ void LinearSUClustering::bmoSearch(){
             }
             if (step == nuwls_solver.max_flips - 1)
             {
+              if (runPolosatOnce)
+                runPolosatOnce = false;
+              else
+                break;
               auto res = Polosat(true);
               if (res == l_True) 
               {
@@ -1040,9 +1094,6 @@ void LinearSUClustering::bmoSearch(){
                     else
                       nuwls_solver.cur_soln[v] = 1;
                   }
-                  for (int i = 0; i < objFunction.size(); i++)
-                    if (solver->model[var(objFunction[i])] == l_True)
-                      badLits.push(objFunction[i]);
                 }
               }
             }
