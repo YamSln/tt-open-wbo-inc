@@ -203,8 +203,6 @@ uint64_t LinearSUClustering::computeOriginalCost(vec<lbool> &currentModel,
   |________________________________________________________________________________________________@*/
 void LinearSUClustering::bmoSearch(){
 
-  std::srand ( 1971603567 );
-
   if (orderWeights.size() == 0)
 	{
 		// No soft clauses
